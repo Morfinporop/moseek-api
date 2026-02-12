@@ -1,12 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const { Resend } = require('resend');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
 
 const verificationCodes = new Map();
@@ -20,7 +18,7 @@ setInterval(() => {
   }
 }, 60000);
 
-app.post('/api/send-code', async (req, res) => {
+app.post('/api/generate-code', async (req, res) => {
   const { email, turnstileToken } = req.body;
 
   if (!email || !turnstileToken) {
@@ -49,31 +47,10 @@ app.post('/api/send-code', async (req, res) => {
       expires: Date.now() + 10 * 60 * 1000,
     });
 
-    await resend.emails.send({
-      from: 'MoSeek <onboarding@resend.dev>',
-      to: email,
-      subject: 'Код подтверждения MoSeek',
-      html: `
-        <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 40px 30px; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%); border-radius: 16px; border: 1px solid rgba(139, 92, 246, 0.2);">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #a855f7; font-size: 28px; margin: 0;">MoSeek</h1>
-            <p style="color: #666; font-size: 13px; margin-top: 5px;">AI Assistant</p>
-          </div>
-          <p style="color: #ccc; font-size: 14px; text-align: center;">Твой код подтверждения:</p>
-          <div style="text-align: center; padding: 25px 0;">
-            <span style="font-size: 36px; font-weight: bold; color: #a855f7; letter-spacing: 10px; background: rgba(139, 92, 246, 0.1); padding: 15px 25px; border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.3);">
-              ${code}
-            </span>
-          </div>
-          <p style="color: #555; font-size: 11px; text-align: center;">Код действителен 10 минут. Если ты не запрашивал код — просто проигнорируй.</p>
-        </div>
-      `,
-    });
-
-    res.json({ success: true });
+    res.json({ success: true, code });
   } catch (error) {
-    console.error('Send code error:', error);
-    res.status(500).json({ error: 'Ошибка отправки кода' });
+    console.error('Generate code error:', error);
+    res.status(500).json({ error: 'Ошибка генерации кода' });
   }
 });
 
